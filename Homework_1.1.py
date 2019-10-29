@@ -3,130 +3,131 @@ import math
 import json
 import numpy as np
 
-class MovieRating:
-
-    def __init__(self):
-        self.array=[]
-        self.context_place=[]
-        self.context_day=[]
-        self.userA=19
-        self.sim=[]
-        self.matrix=[]
-
-    def reader(self):
-        if __name__ == "__main__":
-             csv_path = "data.csv"
-             with open(csv_path, "rU") as file_obj:
-                 self.array = list(csv.reader(file_obj))
-                 self.secdat = list(csv.reader(file_obj))
-        
-        if __name__ == "__main__":
-            csv_path = "context_place.csv"
-            with open(csv_path, "rU") as file_obj:
-                self.context_place = list(csv.reader(file_obj))
-
-        if __name__ == "__main__":
-            csv_path = "context_day.csv"
-            with open(csv_path, "rU") as file_obj:
-                self.context_day = list(csv.reader(file_obj))
-
-        self.find_similarity()
-        self.place_day_array()
-        self.json_writer()
+def init(userA):
+    data, context_place, context_day = reader()
+    find_similarity(data, userA)
+    sim, simval =find_similarity(data, userA)
+    result_ratings =calculated_mark(userA, data, sim)
+    film = place_day_array(userA, data, context_place, context_day, simval)
+    dictionary ={ "User": userA,
+                 "1":result_ratings,
+                 "2":film}
+    with open("data_file.json", "w") as write_file:
+        json.dump(dictionary, write_file)
 
 
-    def json_writer(self):
-        dictionary ={ "user": self.userA,
-                     "1":self.mov,
-                     "2":self.film}
-        with open("data_file.json", "w") as write_file:
-            json.dump(dictionary, write_file)
-        print(dictionary)
+
+def reader():
+    if __name__ == "__main__":
+         csv_path = "data.csv"
+         with open(csv_path, "rU") as file_obj:
+             data = list(csv.reader(file_obj))
+
+    if __name__ == "__main__":
+        csv_path = "context_place.csv"
+        with open(csv_path, "rU") as file_obj:
+            context_place = list(csv.reader(file_obj))
+    
+    if __name__ == "__main__":
+        csv_path = "context_day.csv"
+        with open(csv_path, "rU") as file_obj:
+            context_day = list(csv.reader(file_obj))
+
+    return data, context_place, context_day
+
+def averageMark(data, i):
+    """ Расчет средней оценки пользователя """
+    mark = 0
+    n = 0
+
+    for j in range(1,len(data[0])):
+        if(data[i][j]!=' -1'):
+            mark+=float(data[i][j])
+            n+=1
+
+    return round(float(mark/n),3)
 
 
-    def film_average_mark(self, mov):
-        """ Расчет средней оценки фильма"""
-        mark=0
-        n=0
-        j=self.array[0].index(mov)
-        for i in range(1, len(self.array)):
-            if(int(self.array[i][j])!=-1):
-                mark+=float(self.array[i][j])
-                n+=1
-        return round(float(mark/n), 3)
+def film_average_mark(data, mov):
+    """ Расчет средней оценки фильма"""
+    mark=0
+    n=0
+    j=data[0].index(mov)
+
+    for i in range(1, len(data)):
+        if(int(data[i][j])!=-1):
+            mark+=float(data[i][j])
+            n+=1
+
+    return round(float(mark/n), 3)
 
 
-    def averageMark(self, i):
-        """ Расчет средней оценки пользователя """
-        mark=0
-        n=0
-        for j in range(1,len(self.array[0])):
-                if(int(self.array[i][j])!=-1):
-                   mark+=float(self.array[i][j])
-                   n+=1
-        return round(float(mark/n),3)
-                
+def find_similarity(data, userA):
+    """ Поиск одинаковых пользователей """
+    simval = []
+    sim =[]
 
-    def calculated_mark(self):
-        """Расчет оценок для всех фильмов, которые не смотрел пользователь """
-        up=0
+    for i in range(1,len(data)):
+        top=0
         down=0
-        res=[]
-        self.mov={}
-        for j in range(1,len(self.array[0])):
-                if (int(self.array[self.userA][j])==-1):
+        downA=0
+
+        for j in range(1,len(data[0])):
+            if(int(data[i][j])!=-1 and int(data[userA][j])!=-1):
+                downA+=float(data[userA][j])**2
+                down+=float(data[i][j])**2
+                top+=float(data[userA][j])*(float(data[i][j]))      
+        simval.append(round(top/(math.sqrt(downA)*math.sqrt(down)),3))
+
+    for val in sorted(simval, reverse = True)[0:5]:
+        r = averageMark(data, int(simval.index(val)+1))
+        sim.append([simval.index(val)+1, val, r])
+
+    return sim, simval
+
+
+def calculated_mark(userA, data, sim):
+    """Расчет оценок для всех фильмов, которые не смотрел пользователь """
+    res=[]
+    result_ratings ={}
+    k=sim[0][2]
+  
+    for j in range(1,len(data[0])):
+            if (int(data[userA][j])==-1):
+                up=0
+                down=0
+
+                for i in range(1,5):
+                    if(int(data[sim[i][0]][j])!=-1):
+                        up+=float(sim[i][1])*(float(data[sim[i][0]][j])-float(sim[i][2]))
+                        down+=float(sim[i][1])
+                res.append([j, round(k+up/down,3)])
                     
-                    k=self.matrix[0][2]
-                    for i in range(1,5):
-                        if(int(self.array[self.matrix[i][0]][j])!=-1):
-                            up=float(self.matrix[i][1])*(float(self.array[self.matrix[i][0]][j])-float(self.matrix[i][2]))
-                            down+=float(self.matrix[i][1])
-                            
-                    res.append([j, round(k+up/down,3)])
+    for i in range(0, len(res)):
+        result_ratings.update({data[0][res[i][0]]:res[i][1]})
+
+    return result_ratings 
+
+
+
+def place_day_array(userA, data, context_place, context_day, simval):
+    """ Выработка контекстных рекомендаций """
+    film={}
+    info=[]
+
+    for i in range(1,len(data)):
+        for j in range(1,len(data[0])):
+            if(context_place[i][j]==' h' and (context_day[i][j]==' Sun' or context_day[i][j]==' Sat') 
+               and data[userA][j]==' -1'):
+                info.append([context_place[0][j], context_place[i][0][5:], float(data[i][j]), simval[i-1]])
                     
-        for i in range(0, len(res)):
-            self.mov.update({self.array[0][res[i][0]]:res[i][1]})
-        
+    for val in sorted(info,  key=lambda a_entry: (-a_entry[3], -a_entry[2])):
+        if(float(val[2])>averageMark(data, int(val[1]))):
+            r=film_average_mark(data, val[0])
+            film[val[0]]=r
+            break
 
-    def find_similarity(self):
-        """ Поиск одинаковых пользователей """
-        for i in range(1,len(self.array)):
-            top=0
-            down=0
-            downA=0
-            for j in range(1,len(self.array[0])):
-                if(int(self.array[i][j])!=-1 and int(self.array[self.userA][j])!=-1):
-                    downA+=float(self.array[self.userA][j])**2
-                    down+=float(self.array[i][j])**2
-                    top+=float(self.array[self.userA][j])*(float(self.array[i][j]))
-                    
-                    
-            self.sim.append(round(top/(math.sqrt(downA)*math.sqrt(down)),3))
+    return film
 
-        for val in sorted(self.sim, reverse = True)[0:5]:
-            r=self.averageMark(int(self.sim.index(val)+1))
-            self.matrix.append([self.sim.index(val)+1, val, r])
-        self.calculated_mark()
-
-
-    def place_day_array(self):
-        """ Выработка контекстных рекомендаций """
-        self.film={}
-        a=[]
-
-        for i in range(1,len(self.array)):
-            for j in range(1,len(self.array[0])):
-                if(self.context_place[i][j]==' h' and (self.context_day[i][j]==' Sun' or self.context_day[i][j]==' Sat') 
-                   and self.context_place[self.userA][j]==' -1'):
-                    a.append([self.context_place[0][j], self.context_place[i][0], self.array[i][j], self.sim[i-1]])
-                    
-        for val in sorted(a,  key=lambda a_entry: a_entry[3], reverse = True):
-            if(val[2]==' 5' or val[2]==' 4'):
-                r=self.film_average_mark(val[0])
-                self.film[val[0]]=r
-                break
-
-
-
-userRating=MovieRating()
-userRating.reader()
+UserA = 19
+init(UserA)
