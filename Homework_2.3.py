@@ -5,6 +5,7 @@ from surprise import Dataset
 from surprise import get_dataset_dir
 from SPARQLWrapper import SPARQLWrapper, JSON
 import pandas 
+import requests
 
 
 def get_rid_to_item_mapping():
@@ -76,7 +77,7 @@ for name_film in chosen_movies:
             if('film' in item['description']):
                 films_arr.append((name_film, item['id']))
                 break
-
+print(films_arr)
 
 sparql = SPARQLWrapper("https://query.wikidata.org/sparql")
 
@@ -96,4 +97,3 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language "ru,en". }
         director = result['personLabel']['value']
         award = result['awardLabel']['value']
         print("{}: {}  -  {}".format(film[0], director ,award))
-        
